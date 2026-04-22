@@ -1,0 +1,38 @@
+from __future__ import annotations
+
+from functools import lru_cache
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Runtime configuration loaded from environment / .env file."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    anthropic_api_key: str = Field(default="", description="Claude API key")
+    claude_model: str = Field(default="claude-haiku-4-5")
+
+    embedding_model: str = Field(default="BAAI/bge-m3")
+    embedding_dim: int = Field(default=1024)
+
+    qdrant_url: str = Field(default="http://localhost:6333")
+    qdrant_collection: str = Field(default="syote")
+
+    top_k: int = Field(default=5, ge=1, le=50)
+    max_history_turns: int = Field(default=4, ge=0, le=20)
+
+    app_host: str = Field(default="0.0.0.0")
+    app_port: int = Field(default=8000)
+    log_level: str = Field(default="INFO")
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return Settings()
