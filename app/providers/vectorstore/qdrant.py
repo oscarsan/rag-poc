@@ -91,12 +91,26 @@ class QdrantStore(VectorStore):
                 ]
             )
 
+        if log.isEnabledFor(logging.DEBUG):
+            head = ", ".join(f"{x:.4f}" for x in list(vector)[:4])
+            log.debug(
+                "qdrant.search collection=%s top_k=%d filter_lang=%s "
+                "query_vec_head=[%s, ...]",
+                self._collection, top_k, language, head,
+            )
+
         hits = self._client.search(
             collection_name=self._collection,
             query_vector=list(vector),
             query_filter=query_filter,
             limit=top_k,
             with_payload=True,
+        )
+
+        log.debug(
+            "qdrant.search hits=%d raw_scores=[%s]",
+            len(hits),
+            ", ".join(f"{h.score:.4f}" for h in hits) or "—",
         )
 
         results: list[RetrievedChunk] = []

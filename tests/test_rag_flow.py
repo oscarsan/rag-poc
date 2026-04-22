@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 
 from app.domain import Chunk, Language, RetrievedChunk
@@ -87,6 +88,30 @@ def test_rag_answer_english_path():
     assert answer.language == "en"
     assert store.last_language == "en"
     assert answer.sources == ["husky-safari-2h"]
+
+
+def test_rag_emits_retrieval_log_with_scores_and_doc_ids(caplog):
+    store = FakeStore(
+        [
+            _rc("husky-safari-2h", "fi", "Hinta: 159 € aikuiselta.", score=0.87),
+            _rc("snowshoe-hike", "fi", "Hinta: 65 € aikuiselta.", score=0.61),
+        ]
+    )
+    svc = RagService(FakeEmbeddings(), store, FakeLLM(), top_k=2)
+
+    with caplog.at_level(logging.INFO, logger="app.services.rag"):
+        svc.answer("Paljonko husky safari maksaa?")
+
+    text = "\n".join(r.getMessage() for r in caplog.records)
+    assert "RAG retrieval" in text
+    assert "lang=fi" in text
+    assert "query_vector" in text
+    # Scores and doc ids appear in the table.
+    assert "0.8700" in text and "0.6100" in text
+    assert "husky-safari-2h" in text
+    # Δ-vs-top shows 0 for rank 1 and a negative delta for rank 2.
+    assert "+0.0000" in text
+    assert "-0.2600" in text
 
 
 def test_rag_trims_history_to_last_n_turns():
