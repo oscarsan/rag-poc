@@ -154,7 +154,7 @@ container so it reuses the same virtualenv and reaches Qdrant via the
 compose network:
 
 ```bash
-docker compose exec app python -m app.ingestion.cli ingest --path content/syote
+docker compose exec app python -m app.ingestion.cli --path content/syote
 ```
 
 **First run is slow.** The ingest downloads `BAAI/bge-m3` from Hugging Face

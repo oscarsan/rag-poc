@@ -75,7 +75,7 @@ make up
 # 4. In another terminal, ingest the example content. This embeds all
 #    markdown chunks and upserts them to Qdrant. Re-runs are idempotent.
 make ingest
-# or: docker compose exec app python -m app.ingestion.cli ingest --path content/syote
+# or: docker compose exec app python -m app.ingestion.cli --path content/syote
 
 # 5. Try the chat endpoint
 curl -s localhost:8000/health
