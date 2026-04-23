@@ -11,10 +11,14 @@ WORKDIR /build
 RUN pip install --no-cache-dir uv
 
 COPY pyproject.toml README.md ./
-COPY app ./app
 
 RUN uv venv /opt/venv \
- && VIRTUAL_ENV=/opt/venv uv pip install --no-cache .
+ && uv pip compile pyproject.toml -o requirements.txt \
+ && VIRTUAL_ENV=/opt/venv uv pip install --no-cache -r requirements.txt
+
+COPY app ./app
+
+RUN VIRTUAL_ENV=/opt/venv uv pip install --no-cache --no-deps .
 
 
 FROM python:3.11-slim AS runtime

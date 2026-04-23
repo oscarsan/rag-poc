@@ -99,13 +99,23 @@ class QdrantStore(VectorStore):
                 self._collection, top_k, language, head,
             )
 
-        hits = self._client.search(
-            collection_name=self._collection,
-            query_vector=list(vector),
-            query_filter=query_filter,
-            limit=top_k,
-            with_payload=True,
-        )
+        if hasattr(self._client, "query_points"):
+            response = self._client.query_points(
+                collection_name=self._collection,
+                query=list(vector),
+                query_filter=query_filter,
+                limit=top_k,
+                with_payload=True,
+            )
+            hits = response.points
+        else:
+            hits = self._client.search(
+                collection_name=self._collection,
+                query_vector=list(vector),
+                query_filter=query_filter,
+                limit=top_k,
+                with_payload=True,
+            )
 
         log.debug(
             "qdrant.search hits=%d raw_scores=[%s]",
