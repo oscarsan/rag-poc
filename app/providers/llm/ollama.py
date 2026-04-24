@@ -22,14 +22,25 @@ class OllamaProvider(LLMProvider):
     ``hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q6_K``.
     """
 
-    def __init__(self, url: str, model: str, timeout: float = 180.0) -> None:
+    def __init__(
+        self,
+        url: str,
+        model: str,
+        timeout: float = 300.0,
+        max_tokens: int = 256,
+    ) -> None:
         if not url:
             raise ValueError("OLLAMA_URL is required for OllamaProvider")
         if not model:
             raise ValueError("OLLAMA_MODEL is required for OllamaProvider")
+        if timeout <= 0:
+            raise ValueError("OLLAMA_TIMEOUT_SECONDS must be greater than 0")
+        if max_tokens <= 0:
+            raise ValueError("OLLAMA_MAX_TOKENS must be greater than 0")
         self._url = url.rstrip("/")
         self._model = model
         self._timeout = timeout
+        self._max_tokens = max_tokens
 
     def complete(self, request: LLMRequest) -> str:
         messages: list[dict[str, str]] = [{"role": "system", "content": request.system}]
@@ -44,7 +55,7 @@ class OllamaProvider(LLMProvider):
             "stream": False,
             "options": {
                 "temperature": request.temperature,
-                "num_predict": request.max_tokens,
+                "num_predict": min(request.max_tokens, self._max_tokens),
             },
         }
 
@@ -69,6 +80,12 @@ class OllamaProvider(LLMProvider):
         except urllib.error.URLError as exc:
             raise RuntimeError(
                 f"Ollama request failed ({self._url}/api/chat): {exc.reason}"
+            ) from exc
+        except TimeoutError as exc:
+            raise RuntimeError(
+                f"Ollama request timed out after {self._timeout:g}s "
+                f"({self._url}/api/chat). Try lowering OLLAMA_MAX_TOKENS or "
+                "using a smaller/faster local model."
             ) from exc
 
         message = payload.get("message") or {}

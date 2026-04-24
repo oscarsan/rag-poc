@@ -11,7 +11,12 @@ from app.services import RagService
 
 def _build_llm(settings: Settings) -> LLMProvider:
     if settings.llm_provider == "ollama":
-        return OllamaProvider(url=settings.ollama_url, model=settings.ollama_model)
+        return OllamaProvider(
+            url=settings.ollama_url,
+            model=settings.ollama_model,
+            timeout=settings.ollama_timeout_seconds,
+            max_tokens=settings.ollama_max_tokens,
+        )
     return ClaudeProvider(
         api_key=settings.anthropic_api_key, model=settings.claude_model
     )

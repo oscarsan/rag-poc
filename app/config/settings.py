@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     ollama_model: str = Field(
         default="hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q6_K"
     )
+    ollama_timeout_seconds: float = Field(default=300.0, gt=0)
+    ollama_max_tokens: int = Field(default=256, ge=1, le=4096)
 
     embedding_model: str = Field(default="BAAI/bge-m3")
     embedding_dim: int = Field(default=1024)
