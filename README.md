@@ -12,6 +12,10 @@ and national park (Syöte, Pudasjärvi region) in Finnish and English.
 
 ## Architecture
 
+For a full walkthrough with sequence diagrams and a tour of every file's
+responsibility, see **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**. The
+short version:
+
 ```
 app/
   api/           FastAPI routes, request/response schemas
