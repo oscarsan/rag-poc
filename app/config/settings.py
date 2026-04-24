@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -16,8 +17,15 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    llm_provider: Literal["claude", "ollama"] = Field(default="claude")
+
     anthropic_api_key: str = Field(default="", description="Claude API key")
     claude_model: str = Field(default="claude-haiku-4-5")
+
+    ollama_url: str = Field(default="http://localhost:11434")
+    ollama_model: str = Field(
+        default="hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q6_K"
+    )
 
     embedding_model: str = Field(default="BAAI/bge-m3")
     embedding_dim: int = Field(default=1024)

@@ -2,11 +2,19 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from app.config import get_settings
+from app.config import Settings, get_settings
 from app.providers.embeddings import BgeM3EmbeddingProvider
-from app.providers.llm import ClaudeProvider
+from app.providers.llm import ClaudeProvider, LLMProvider, OllamaProvider
 from app.providers.vectorstore import QdrantStore
 from app.services import RagService
+
+
+def _build_llm(settings: Settings) -> LLMProvider:
+    if settings.llm_provider == "ollama":
+        return OllamaProvider(url=settings.ollama_url, model=settings.ollama_model)
+    return ClaudeProvider(
+        api_key=settings.anthropic_api_key, model=settings.claude_model
+    )
 
 
 @lru_cache(maxsize=1)
@@ -18,7 +26,7 @@ def get_rag_service() -> RagService:
     settings = get_settings()
     embeddings = BgeM3EmbeddingProvider(model_name=settings.embedding_model)
     store = QdrantStore(url=settings.qdrant_url, collection=settings.qdrant_collection)
-    llm = ClaudeProvider(api_key=settings.anthropic_api_key, model=settings.claude_model)
+    llm = _build_llm(settings)
     return RagService(
         embeddings,
         store,

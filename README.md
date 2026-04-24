@@ -3,7 +3,9 @@
 Proof-of-concept RAG chatbot answering guest questions about a Finnish resort
 and national park (Syöte, Pudasjärvi region) in Finnish and English.
 
-- **LLM:** Claude Haiku 4.5 via the official `anthropic` SDK
+- **LLM:** Claude Haiku 4.5 via the official `anthropic` SDK, or any local
+  model served by Ollama (e.g. `Llama-Poro-2-8B-Instruct`) — selectable via
+  `LLM_PROVIDER`
 - **Embeddings:** `BAAI/bge-m3` via `sentence-transformers` (in-process)
 - **Vector DB:** Qdrant (Docker)
 - **API:** FastAPI
@@ -15,7 +17,7 @@ app/
   api/           FastAPI routes, request/response schemas
   services/      Orchestration: RagService, language detection, prompt builder
   providers/
-    llm/         LLMProvider (ABC) + ClaudeProvider
+    llm/         LLMProvider (ABC) + ClaudeProvider + OllamaProvider
     embeddings/  EmbeddingProvider (ABC) + BgeM3EmbeddingProvider
     vectorstore/ VectorStore (ABC) + QdrantStore
   ingestion/     Markdown parser, chunker, ingestion pipeline, CLI
@@ -38,8 +40,15 @@ Kept here so we remember why things are the way they are.
   not a separate embedding server. Simpler PoC (one fewer container), same
   model quality. `EmbeddingProvider` lets us switch to a remote server later
   without touching `services/`.
-- **LLM:** Claude Haiku 4.5 via the official `anthropic` SDK, behind
-  `LLMProvider`.
+- **LLM:** Two providers behind `LLMProvider`:
+  - `ClaudeProvider` — Claude Haiku 4.5 via the official `anthropic` SDK.
+    Requires API billing on <https://console.anthropic.com> (your claude.ai
+    Pro/Max subscription does **not** grant API access).
+  - `OllamaProvider` — any model served by a local Ollama, default
+    `hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q6_K` (a Finnish-tuned
+    Llama-3 8B). No API key needed, runs fully offline. Lower answer
+    quality than Haiku 4.5 but free and private.
+  - Toggle with `LLM_PROVIDER=claude` or `LLM_PROVIDER=ollama` in `.env`.
 - **Vector DB:** Qdrant in Docker. Collection is recreated when the
   configured dimension doesn't match the current collection.
 - **Language detection:** tiny heuristic in `app/services/language.py` —
@@ -87,6 +96,41 @@ curl -s -X POST localhost:8000/chat \
   -H 'content-type: application/json' \
   -d '{"message":"Paljonko husky safari maksaa?"}' | jq
 ```
+
+## Switching to a local Ollama model
+
+The default `LLM_PROVIDER=claude` hits the Anthropic API. To run everything
+locally with Ollama (e.g. Llama-Poro-2 for Finnish):
+
+1. Install and start Ollama on the host: <https://ollama.com>.
+2. Pull the model once:
+   ```bash
+   ollama pull hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q6_K
+   # sanity check outside the app:
+   ollama run hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q6_K \
+     "Kerro lyhyesti Suomen pääkaupungista."
+   ```
+3. In `.env`:
+   ```env
+   LLM_PROVIDER=ollama
+   # If the API runs in Docker (mode A): use host.docker.internal
+   OLLAMA_URL=http://host.docker.internal:11434
+   # If the API runs locally (mode B): use localhost
+   # OLLAMA_URL=http://localhost:11434
+   OLLAMA_MODEL=hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q6_K
+   ```
+4. Restart the app:
+   ```bash
+   docker compose up -d            # mode A
+   # or: make run                  # mode B
+   ```
+
+`host.docker.internal` resolves on Docker Desktop (macOS / Windows) by
+default, and on Linux via the `extra_hosts: host-gateway` entry already in
+`docker-compose.yml`.
+
+No `ANTHROPIC_API_KEY` needed in this mode. Response quality on Finnish
+is noticeably below Haiku 4.5, but the whole thing is private and free.
 
 ## Endpoints
 
@@ -162,9 +206,9 @@ Deterministic chunk IDs make re-ingestion idempotent.
 make test
 ```
 
-19 unit tests cover the parser, chunker, language detection, and a mocked
-end-to-end RAG flow (fake embeddings, store, and LLM). No network access
-needed; CI-safe.
+24 unit tests cover the parser, chunker, language detection, a mocked
+end-to-end RAG flow (fake embeddings, store, and LLM), and the Ollama
+provider (mocked HTTP layer). No network access needed; CI-safe.
 
 ## Security / production notes
 
