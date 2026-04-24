@@ -24,6 +24,11 @@ services:
       - .env
     environment:
       QDRANT_URL: http://qdrant:6333
+      # From inside the container, "localhost" is the container itself, so
+      # reaching Ollama on the host requires host.docker.internal. We force
+      # this here (same pattern as QDRANT_URL above) so users don't hit
+      # "Cannot assign requested address" by copying the mode-B default.
+      OLLAMA_URL: http://host.docker.internal:11434
     # Allows the app container to reach Ollama running on the host at
     # http://host.docker.internal:11434. Already works out-of-the-box on
     # Docker Desktop (macOS / Windows); this line is what makes it resolve

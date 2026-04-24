@@ -117,11 +117,10 @@ locally with Ollama (e.g. Llama-Poro-2 for Finnish):
 3. In `.env`:
    ```env
    LLM_PROVIDER=ollama
-   # If the API runs in Docker (mode A): use host.docker.internal
-   OLLAMA_URL=http://host.docker.internal:11434
-   # If the API runs locally (mode B): use localhost
-   # OLLAMA_URL=http://localhost:11434
    OLLAMA_MODEL=hf.co/mradermacher/Llama-Poro-2-8B-Instruct-GGUF:Q6_K
+   # Only relevant in mode B (API on the host). In mode A, docker-compose
+   # overrides this to http://host.docker.internal:11434 automatically.
+   OLLAMA_URL=http://localhost:11434
    ```
 4. Restart the app:
    ```bash
