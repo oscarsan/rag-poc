@@ -114,6 +114,32 @@ def test_rag_emits_retrieval_log_with_scores_and_doc_ids(caplog):
     assert "-0.2600" in text
 
 
+def test_rag_logs_full_llm_prompt_before_completion(caplog):
+    store = FakeStore(
+        [
+            _rc("husky-safari-2h", "fi", "Hinta: 159 € aikuiselta.", score=0.87),
+        ]
+    )
+    llm = FakeLLM(reply="159 € aikuiselta.")
+    svc = RagService(FakeEmbeddings(), store, llm, top_k=1, max_history_turns=1)
+
+    from app.domain import ChatTurn
+
+    history = [ChatTurn(role="user", content="Hei")]
+
+    with caplog.at_level(logging.INFO, logger="app.services.rag"):
+        svc.answer("Paljonko husky safari maksaa?", history)
+
+    text = "\n".join(r.getMessage() for r in caplog.records)
+    assert "LLM prompt" in text
+    assert "You are a helpful assistant for a Finnish resort" in text
+    assert "[1] user:\nHei" in text
+    assert "Context chunks:" in text
+    assert "source=husky-safari-2h" in text
+    assert "Hinta: 159 € aikuiselta." in text
+    assert "Käyttäjän kysymys (fi): Paljonko husky safari maksaa?" in text
+
+
 def test_rag_trims_history_to_last_n_turns():
     store = FakeStore([_rc("doc", "en", "context")])
     llm = FakeLLM()

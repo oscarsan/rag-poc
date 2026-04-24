@@ -80,6 +80,25 @@ def _log_retrieval(
     log.info("=" * 78)
 
 
+def _log_llm_prompt(
+    system: str,
+    history: Sequence[ChatTurn],
+    user_message: str,
+) -> None:
+    """Emit the exact chat prompt passed to the LLM provider."""
+    log.info("=" * 78)
+    log.info("LLM prompt  history_messages=%d", len(history))
+    log.info("  system:\n%s", system)
+    if history:
+        log.info("  history:")
+        for i, turn in enumerate(history, start=1):
+            log.info("  [%d] %s:\n%s", i, turn.role, turn.content)
+    else:
+        log.info("  history: (none)")
+    log.info("  user:\n%s", user_message)
+    log.info("=" * 78)
+
+
 class RagService:
     def __init__(
         self,
@@ -119,6 +138,7 @@ class RagService:
 
         trimmed_history = list(history)[-self._max_history_turns * 2 :]
         user_message = build_user_message(question, lang, retrieved)
+        _log_llm_prompt(SYSTEM_PROMPT, trimmed_history, user_message)
 
         reply = self._llm.complete(
             LLMRequest(
