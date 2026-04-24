@@ -28,7 +28,7 @@ run:
 	.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 ingest:
-	.venv/bin/python -m app.ingestion.cli ingest --path content/syote
+	.venv/bin/python -m app.ingestion.cli --path content/syote
 
 test:
 	.venv/bin/pytest -v
