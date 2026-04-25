@@ -10,12 +10,22 @@ WORKDIR /build
 
 RUN pip install --no-cache-dir uv
 
-COPY pyproject.toml README.md ./
+# Copy only pyproject.toml here. README.md and app/ are deliberately
+# copied later, so README edits don't bust this expensive
+# dependency-install layer (torch + sentence-transformers ~3 GB).
+# uv pip compile only reads [project.dependencies] from pyproject.toml,
+# it does not invoke the build backend, so README.md is not needed yet.
+COPY pyproject.toml ./
 
 RUN uv venv /opt/venv \
  && uv pip compile pyproject.toml -o requirements.txt \
  && VIRTUAL_ENV=/opt/venv uv pip install --no-cache -r requirements.txt
 
+# README.md is needed by hatchling when building the project itself
+# (referenced from [project].readme). Copy it alongside the source so the
+# small final install layer is the only thing that rebuilds on doc/code
+# edits.
+COPY README.md ./
 COPY app ./app
 
 RUN VIRTUAL_ENV=/opt/venv uv pip install --no-cache --no-deps .
